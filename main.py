@@ -32,7 +32,14 @@ class VkPhotoManager:
         print(f'VK: Loading {count} photos from user {vk_id}...')
         response = requests.get(self.photos_url, params=params)
         print(f'VK: Got response, status code = {response.status_code}')
-        photos_raw = response.json()['response']['items']
+        if response.status_code != 200:
+            print(f"VK: Loading photos failed ({response.reason})")
+            return []
+        response_json = response.json()
+        if 'error' in response_json:
+            print(f"VK: Loading photos failed ({response_json['error']['error_msg']})")
+            return []
+        photos_raw = response_json['response']['items']
         print(f"VK: Loaded {len(photos_raw)} photos")
         return self.parse_photos(photos_raw)
 
@@ -111,6 +118,10 @@ def main():
 
     vk_manager = VkPhotoManager(vk_token)
     photos = vk_manager.load_photos(vk_id, photos_count)
+
+    if len(photos) < 1:
+        print('No photos loaded, exiting')
+        return
 
     yandex_uploader = YandexUploader(ya_token)
     yandex_uploader.create_folder(folder_name)
